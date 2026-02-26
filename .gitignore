@@ -1,0 +1,39 @@
+# OS metadata
+.DS_Store
+
+# IDE/editor files
+.idea/
+.vscode/
+*.swp
+*~
+
+# Build outputs
+/build/
+/out/
+/cmake-build-*/
+
+# CMake-generated files (for in-source builds)
+/CMakeFiles/
+/CMakeCache.txt
+/cmake_install.cmake
+/compile_commands.json
+/CTestTestfile.cmake
+/Testing/
+
+# Native build artifacts
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.dll
+*.lib
+*.exe
+/sam
+
+# Plugin/package artifacts
+*.vst3
+*.component
+*.pkg
+*.dSYM/
+*.tar.gz

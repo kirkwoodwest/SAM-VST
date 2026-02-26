@@ -1,4 +1,85 @@
+# SAM-VST (iPlug2 Port)
+
+SAM-VST is an experimental VST plugin being rebuilt using **iPlug2**.
+The plugin focuses on text-driven speech synthesis triggered from the GUI or MIDI.
+
+Development is split into clear versions to keep scope controlled.
+
+---
+
+## V1 — Core Prototype
+
+**Scope**
+
+* iPlug2 VST project
+* GUI button to trigger playback
+* Sliders for SAM synthesis controls
+* Text window for editing input text *(iPlug2 text editing support TBD — may require custom control or platform text field)*
+
+**Behavior**
+
+* User edits text inside the plugin window
+* Playback can be triggered directly from the GUI
+* MIDI triggering may exist but is not required for V1
+
+**Notes**
+
+* Keep UI minimal.
+* No persistence or preset system yet.
+
+---
+
+## V2 — Persistence
+
+**Additions**
+
+* Ability to save text content
+* Basic load/restore workflow
+
+---
+
+## V3 — Multi-Phrase Playback
+
+**Additions**
+
+* Multiple phrases stored simultaneously
+* Phrase selection and playback control
+* Expanded triggering behavior
+
+---
+
+## Status
+
+* Repository cloned
+* iPlug2 port in progress
+* README reflects milestone structure
+
+## iPlug2 Skeleton Build (VST3)
+
+```bash
+cmake -S . -B build \
+  -DIPLUG2_DIR=/absolute/path/to/iPlug2
+cmake --build build --config Release --target SAMVST-vst3
+```
+
+Notes:
+* The scaffold currently builds a VST3 target with a basic iPlug2 UI shell (sliders, playback stub button, text edit placeholder).
+* Use your local iPlug2 checkout path for `IPLUG2_DIR`.
+* Existing legacy `make` flow for CLI SAM remains unchanged.
+
+---
+
+# Fonts
+
+https://style64.org/c64-truetype
+
+
+---
+
+
+
 SAM
+
 ===
 
 Software Automatic Mouth - Tiny Speech Synthesizer 

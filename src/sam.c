@@ -36,6 +36,7 @@ unsigned char phonemeLengthOutput[60]; //tab47416
 // contains the final soundbuffer
 int bufferpos=0;
 char *buffer = NULL;
+static const int kBufferCapacity = 22050 * 10;
 
 
 void SetInput(unsigned char *_input)
@@ -74,8 +75,12 @@ void Init() {
 	SetMouthThroat( mouth, throat);
 
 	bufferpos = 0;
-	// TODO, check for free the memory, 10 seconds of output should be more than enough
-	buffer = malloc(22050*10); 
+	if (buffer == NULL) {
+		buffer = malloc(kBufferCapacity);
+	}
+	if (buffer != NULL) {
+		memset(buffer, 0, kBufferCapacity);
+	}
 
 	for(i=0; i<256; i++) {
 		stress[i] = 0;
@@ -93,6 +98,7 @@ void Init() {
 int SAMMain() {
 	unsigned char X = 0; //!! is this intended like this?
 	Init();
+	if (buffer == NULL) return 0;
     /* FIXME: At odds with assignment in Init() */
 	phonemeindex[255] = 32; //to prevent buffer overflow
 
