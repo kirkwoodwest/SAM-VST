@@ -73,7 +73,8 @@ Notes:
 
 https://style64.org/c64-truetype
 
-
+# original SAM Manual
+https://github.com/discordier/sam/blob/master/docs/manual.md
 ---
 
 
