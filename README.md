@@ -71,7 +71,24 @@ Notes:
 
 # Fonts
 
+This project uses `C64_Pro_Mono-STYLE.ttf` from C64 TrueType:
 https://style64.org/c64-truetype
+
+To comply with the upstream font license, the font binary is not distributed in this repository.
+
+Install for local builds:
+
+1. Download `C64_Pro_Mono-STYLE.ttf` from the official C64 TrueType page above.
+2. Place it at:
+
+   `plugin/resources/fonts/C64_Pro_Mono-STYLE.ttf`
+
+3. Build as usual:
+
+   ```bash
+   cmake -S . -B build -DIPLUG2_DIR=/absolute/path/to/iPlug2
+   cmake --build build --config Release --target SAMVST-vst3
+   ```
 
 # original SAM Manual
 https://github.com/discordier/sam/blob/master/docs/manual.md

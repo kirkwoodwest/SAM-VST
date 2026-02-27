@@ -37,3 +37,6 @@
 *.pkg
 *.dSYM/
 *.tar.gz
+
+# Third-party fonts (license-restricted redistribution)
+/plugin/resources/fonts/C64_Pro_Mono-STYLE.ttf

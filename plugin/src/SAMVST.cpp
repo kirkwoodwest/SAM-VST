@@ -783,10 +783,149 @@ private:
 #undef STB_TEXTEDIT_DELETECHARS
 #undef STB_TEXTEDIT_INSERTCHARS
 
+class C64BlockSliderControl final : public ISliderControlBase
+{
+public:
+  static constexpr double kFastSliderGearing = 1.0;
+
+  C64BlockSliderControl(const IRECT& bounds, int paramIdx, const char* label,
+                        const IText& textStyle, const IColor& bgColor,
+                        const IColor& inactiveColor, const IColor& activeColor)
+  : ISliderControlBase(bounds, paramIdx, EDirection::Horizontal, kFastSliderGearing, 0.f)
+  , mLabel(label ? label : "")
+  , mTextStyle(textStyle)
+  , mBGColor(bgColor)
+  , mInactiveColor(inactiveColor)
+  , mActiveColor(activeColor)
+  {
+    mHideCursorOnDrag = false;
+  }
+
+  void OnResize() override
+  {
+    SetTargetRECT(mRECT);
+
+    const IRECT row = mRECT.GetPadded(-2.f);
+    const float labelWidth = std::min(130.f, row.W() * 0.34f);
+    const float valueWidth = std::min(88.f, row.W() * 0.22f);
+
+    mLabelRect = IRECT(row.L, row.T, row.L + labelWidth, row.B);
+    mValueRect = IRECT(row.R - valueWidth, row.T, row.R, row.B);
+    mTrackRect = IRECT(mLabelRect.R + 6.f, row.T + 5.f, mValueRect.L - 6.f, row.B - 5.f);
+
+    if (mTrackRect.W() < 16.f)
+      mTrackRect = IRECT(row.L + 8.f, row.T + 5.f, row.R - 8.f, row.B - 5.f);
+
+    mTrackBounds = mTrackRect;
+    SetDirty(false);
+  }
+
+  void Draw(IGraphics& g) override
+  {
+    g.FillRect(mBGColor, mRECT, &mBlend);
+    g.DrawText(mTextStyle.WithAlign(EAlign::Near).WithVAlign(EVAlign::Middle), mLabel.Get(), mLabelRect, &mBlend);
+
+    DrawBlockTrack(g);
+
+    WDL_String valueText;
+    if (const IParam* pParam = GetParam())
+      pParam->GetDisplayWithLabel(valueText);
+    else
+      valueText.SetFormatted(32, "%d%%", static_cast<int>(std::round(GetValue() * 100.0)));
+
+    g.DrawText(mTextStyle.WithAlign(EAlign::Far).WithVAlign(EVAlign::Middle), valueText.Get(), mValueRect, &mBlend);
+  }
+
+  void OnMouseDblClick(float x, float y, const IMouseMod& mod) override
+  {
+    (void) x;
+    (void) y;
+    (void) mod;
+    SetValueToDefault();
+  }
+
+private:
+  void DrawBlockTrack(IGraphics& g)
+  {
+    if (mTrackRect.W() <= 8.f || mTrackRect.H() <= 4.f)
+      return;
+
+    constexpr int kSlotCount = 24;
+    constexpr float kGap = 2.f;
+
+    const float totalGap = static_cast<float>(kSlotCount - 1) * kGap;
+    const float slotWidth = (mTrackRect.W() - totalGap) / static_cast<float>(kSlotCount);
+
+    if (slotWidth <= 1.f)
+    {
+      g.DrawLine(mInactiveColor, mTrackRect.L, mTrackRect.MH(), mTrackRect.R, mTrackRect.MH(), &mBlend, 2.f);
+      return;
+    }
+
+    const float blockHeight = std::max(4.f, std::min(8.f, mTrackRect.H()));
+    const float blockTop = mTrackRect.MH() - (blockHeight * 0.5f);
+    const int handleIdx = Clip(static_cast<int>(std::round(GetValue() * static_cast<double>(kSlotCount - 1))), 0, kSlotCount - 1);
+
+    for (int i = 0; i < kSlotCount; ++i)
+    {
+      const float left = mTrackRect.L + static_cast<float>(i) * (slotWidth + kGap);
+      const IRECT blockRect(left, blockTop, left + slotWidth, blockTop + blockHeight);
+      g.FillRect(i <= handleIdx ? mActiveColor : mInactiveColor, blockRect, &mBlend);
+    }
+
+    const float handleLeft = mTrackRect.L + static_cast<float>(handleIdx) * (slotWidth + kGap);
+    const IRECT handleRect(handleLeft - 1.f, blockTop - 4.f, handleLeft + slotWidth + 1.f, blockTop + blockHeight + 4.f);
+    g.FillRect(mBGColor, handleRect, &mBlend);
+    g.DrawRect(mInactiveColor, handleRect, &mBlend, 1.5f);
+  }
+
+  WDL_String mLabel;
+  IText mTextStyle;
+  IColor mBGColor;
+  IColor mInactiveColor;
+  IColor mActiveColor;
+  IRECT mLabelRect;
+  IRECT mTrackRect;
+  IRECT mValueRect;
+};
+
+class C64SquareButtonControl final : public IButtonControlBase
+{
+public:
+  C64SquareButtonControl(const IRECT& bounds, IActionFunction action, const char* label,
+                         const IText& textStyle, const IColor& bgColor,
+                         const IColor& fgColor)
+  : IButtonControlBase(bounds, std::move(action))
+  , mLabel(label ? label : "")
+  , mTextStyle(textStyle)
+  , mBGColor(bgColor)
+  , mFGColor(fgColor)
+  {
+  }
+
+  void Draw(IGraphics& g) override
+  {
+    const bool pressed = GetValue() > 0.5;
+    const IColor fillColor = pressed ? mFGColor : mBGColor;
+    const IColor textColor = pressed ? mBGColor : mFGColor;
+    const IColor borderColor = mMouseIsOver ? mFGColor : IColor(200, mFGColor.R, mFGColor.G, mFGColor.B);
+
+    g.FillRect(fillColor, mRECT, &mBlend);
+    g.DrawRect(borderColor, mRECT, &mBlend, 2.f);
+    g.DrawText(mTextStyle.WithFGColor(textColor).WithAlign(EAlign::Center).WithVAlign(EVAlign::Middle), mLabel.Get(), mRECT, &mBlend);
+  }
+
+private:
+  WDL_String mLabel;
+  IText mTextStyle;
+  IColor mBGColor;
+  IColor mFGColor;
+};
+
 SAMVST::SAMVST(const InstanceInfo& info)
 : Plugin(info, MakeConfig(kNumParams, kNumPresets))
 {
-  GetParam(kOutputGain)->InitDouble("Output Gain", 100., 0., 200.0, 0.01, "%");
+  GetParam(kOutputGain)->InitInt("Output Gain", 100, 0, 200, "%");
   GetParam(kSpeed)->InitInt("Speed", kDefaultSpeed, kSAMParamMin, kSAMParamMax, "");
   GetParam(kPitch)->InitInt("Pitch", kDefaultPitch, kSAMParamMin, kSAMParamMax, "");
   GetParam(kThroat)->InitInt("Throat", kDefaultThroat, kSAMParamMin, kSAMParamMax, "");
@@ -813,48 +952,47 @@ SAMVST::SAMVST(const InstanceInfo& info)
       return;
     }
 
-    const IVStyle style = DEFAULT_STYLE.WithDrawShadows(false).WithEmboss(false).WithRoundness(4.f)
-      .WithColor(kBG, kUiPurpleDark)
-      .WithColor(kFG, kUiPurpleLight)
-      .WithColor(kPR, kUiPurpleLight)
-      .WithColor(kFR, kUiPurpleLight)
-      .WithColor(kHL, kUiPurpleLight)
-      .WithColor(kSH, kUiPurpleDark)
-      .WithLabelText(DEFAULT_LABEL_TEXT.WithFont(kUIFontID).WithFGColor(kUiPurpleLight))
-      .WithValueText(DEFAULT_VALUE_TEXT.WithFont(kUIFontID).WithFGColor(kUiPurpleLight));
-
     IRECT bounds = pGraphics->GetBounds().GetPadded(-12.f);
     IRECT titleRow = bounds.ReduceFromTop(30.f);
     pGraphics->AttachControl(new ITextControl(titleRow, "SAM-VST",
       DEFAULT_TEXT.WithSize(20.f).WithAlign(EAlign::Near).WithFont(kUIFontID).WithFGColor(kUiPurpleLight), COLOR_TRANSPARENT));
     bounds.ReduceFromTop(8.f);
 
-    IRECT controlsPane = bounds.FracRectHorizontal(0.42f).GetPadded(-2.f);
-    IRECT textPane = bounds.FracRectHorizontal(0.58f, true).GetPadded(-2.f);
+    IRECT controlsPane = bounds.FracRectHorizontal(0.5f).GetPadded(-2.f);
+    IRECT textPane = bounds.FracRectHorizontal(0.5f, true).GetPadded(-2.f);
 
-    IRECT sliderArea = controlsPane.ReduceFromTop(210.f);
+    IRECT sliderArea = controlsPane.ReduceFromTop(180.f);
     const std::array<int, 5> sliderParams = {kOutputGain, kSpeed, kPitch, kThroat, kMouth};
-    const std::array<const char*, 5> sliderLabels = {"Output Gain", "Speed", "Pitch", "Throat", "Mouth"};
+    const std::array<const char*, 5> sliderLabels = {"GAIN", "SPEED", "PITCH", "THROAT", "MOUTH"};
+    const IText rowText = DEFAULT_TEXT.WithSize(14.f).WithAlign(EAlign::Near).WithFont(kUIFontID).WithFGColor(kUiPurpleLight);
+    const IColor trackInactive = IColor(170, kUiPurpleLight.R, kUiPurpleLight.G, kUiPurpleLight.B);
+    const IColor trackActive = IColor(255, 18, 10, 58);
 
     for (size_t i = 0; i < sliderParams.size(); ++i)
     {
-      const IRECT row = sliderArea.SubRectVertical(static_cast<int>(sliderParams.size()), static_cast<int>(i)).GetPadded(-2.f);
-      pGraphics->AttachControl(new IVSliderControl(row, sliderParams[i], sliderLabels[i], style, false, EDirection::Horizontal));
+      const IRECT row = sliderArea.SubRectVertical(static_cast<int>(sliderParams.size()), static_cast<int>(i)).GetPadded(-1.f);
+      pGraphics->AttachControl(new C64BlockSliderControl(row, sliderParams[i], sliderLabels[i], rowText, kUiPurpleDark, trackInactive, trackActive));
     }
 
-    controlsPane.ReduceFromTop(10.f);
-    IRECT actionRow = controlsPane.ReduceFromTop(38.f);
-    pGraphics->AttachControl(new IVButtonControl(actionRow.FracRectHorizontal(0.6f).GetPadded(-2.f), [this](IControl*) {
-      RequestPlaybackTrigger();
-    }, "Playback", style));
+    controlsPane.ReduceFromTop(8.f);
+    const IRECT actionRow = controlsPane.ReduceFromTop(34.f).GetPadded(-1.f);
+    const float buttonGap = 8.f;
+    const float buttonWidth = (actionRow.W() - buttonGap) * 0.5f;
+    const IRECT playbackButtonRect(actionRow.L, actionRow.T, actionRow.L + buttonWidth, actionRow.B);
+    const IRECT editButtonRect(playbackButtonRect.R + buttonGap, actionRow.T, actionRow.R, actionRow.B);
+    const IText buttonText = DEFAULT_TEXT.WithSize(14.f).WithAlign(EAlign::Center).WithVAlign(EVAlign::Middle).WithFont(kUIFontID).WithFGColor(kUiPurpleLight);
 
-    pGraphics->AttachControl(new IVButtonControl(actionRow.FracRectHorizontal(0.38f, true).GetPadded(-2.f), [pGraphics](IControl*) {
+    pGraphics->AttachControl(new C64SquareButtonControl(playbackButtonRect, [this](IControl*) {
+      RequestPlaybackTrigger();
+    }, "PLAYBACK", buttonText, kUiPurpleDark, kUiPurpleLight));
+
+    pGraphics->AttachControl(new C64SquareButtonControl(editButtonRect, [pGraphics](IControl*) {
       if (auto* pControl = pGraphics->GetControlWithTag(kCtrlTagTextPanel))
       {
         if (auto* pTextPanel = pControl->As<SAMTextPanelControl>())
           pTextPanel->StartEditing();
       }
-    }, "Edit Text", style));
+    }, "EDIT TEXT", buttonText, kUiPurpleDark, kUiPurpleLight));
 
     controlsPane.ReduceFromTop(8.f);
     IRECT statusRow = controlsPane.ReduceFromTop(22.f);
